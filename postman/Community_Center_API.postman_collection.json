@@ -1,0 +1,756 @@
+{
+  "info": {
+    "_postman_id": "c8e1a5f4-3d92-4f11-9a72-phoebus-qa",
+    "name": "Community Center API - QA Automation",
+    "description": "Suíte completa de testes de API.\nInclui testes de contrato, regras de negócio (intercâmbio, ocupação máxima), relatórios e autenticação.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://cj98hakmf0.execute-api.us-east-1.amazonaws.com/phoebus-apps",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "SUA_API_KEY_AQUI",
+      "type": "string"
+    },
+    {
+      "key": "communityCenterId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "centerIdA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "centerIdB",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request global: garante que o header apiKey seja injetado",
+          "pm.request.headers.upsert({key: 'apiKey', value: pm.variables.get('apiKey') || pm.collectionVariables.get('apiKey')});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Centros Comunitários",
+      "item": [
+        {
+          "name": "Criar Centro Comunitário (Sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Retorna communityCenterId válido', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('communityCenterId');",
+                  "    pm.expect(jsonData.communityCenterId).to.be.a('string').and.not.empty;",
+                  "    // Salva nas variáveis da collection para testes subsequentes",
+                  "    pm.collectionVariables.set('communityCenterId', jsonData.communityCenterId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Centro Postman QA {{$randomAlphaNumeric}}\",\n  \"address\": \"Av. Teste Postman, 123\",\n  \"maxNumberOfPeople\": 200,\n  \"currentNumberOfPeople\": 50,\n  \"resources\": {\n    \"doctor\": 3,\n    \"volunteer\": 10,\n    \"medicalSuppliesKit\": 5,\n    \"transportVehicle\": 2,\n    \"basicFoodBasket\": 20\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar Centro - Campo Obrigatório Ausente (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"Rua Sem Nome, 0\",\n  \"maxNumberOfPeople\": 100,\n  \"currentNumberOfPeople\": 10,\n  \"resources\": {\n    \"volunteer\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar Centro - Ocupação Excede Capacidade (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 400 (Ocupação > Max)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Centro Lotado Postman\",\n  \"address\": \"Rua Cheia, 999\",\n  \"maxNumberOfPeople\": 100,\n  \"currentNumberOfPeople\": 150,\n  \"resources\": {\n    \"volunteer\": 2\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Centros Comunitários (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Tempo de resposta é menor que 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter?page=0&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Excluir Centro Comunitário (Sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 ou 204', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter/{{communityCenterId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter",
+                "{{communityCenterId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Excluir Centro Inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Ocupação",
+      "item": [
+        {
+          "name": "Setup - Criar Centro para Ocupação",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Setup criado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('communityCenterId', jsonData.communityCenterId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Centro Teste Ocupacao\",\n  \"address\": \"Rua Ocupacao, 10\",\n  \"maxNumberOfPeople\": 100,\n  \"currentNumberOfPeople\": 10,\n  \"resources\": {\n    \"volunteer\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Ocupação de Pessoas (Sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 ou 204', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentNumberOfPeople\": 75\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter/{{communityCenterId}}/currentNumberOfPeople",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter",
+                "{{communityCenterId}}",
+                "currentNumberOfPeople"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Ocupação - Excede Máximo (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentNumberOfPeople\": 9999\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter/{{communityCenterId}}/currentNumberOfPeople",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter",
+                "{{communityCenterId}}",
+                "currentNumberOfPeople"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Intercâmbio de Recursos",
+      "item": [
+        {
+          "name": "Setup - Criar Centro A (Ofertante)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Centro A criado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('centerIdA', pm.response.json().communityCenterId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Centro A Ofertante\",\n  \"address\": \"Rua A, 1\",\n  \"maxNumberOfPeople\": 200,\n  \"currentNumberOfPeople\": 50,\n  \"resources\": {\n    \"volunteer\": 10,\n    \"transportVehicle\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Setup - Criar Centro B (Receptor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Centro B criado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('centerIdB', pm.response.json().communityCenterId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Centro B Receptor\",\n  \"address\": \"Rua B, 2\",\n  \"maxNumberOfPeople\": 200,\n  \"currentNumberOfPeople\": 50,\n  \"resources\": {\n    \"doctor\": 5,\n    \"medicalSuppliesKit\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Realizar Intercâmbio Equilibrado (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 204 No Content (Troca Realizada)', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"communityCenterId\": \"{{centerIdA}}\",\n  \"targetCommunityCenterId\": \"{{centerIdB}}\",\n  \"offerResources\": {\n    \"volunteer\": 2,\n    \"transportVehicle\": 1\n  },\n  \"requestResources\": {\n    \"doctor\": 1,\n    \"medicalSuppliesKit\": 1\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter/exchange",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter",
+                "exchange"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Realizar Intercâmbio Desbalanceado (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 400 Bad Request (Pontos desbalanceados)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"communityCenterId\": \"{{centerIdA}}\",\n  \"targetCommunityCenterId\": \"{{centerIdB}}\",\n  \"offerResources\": {\n    \"volunteer\": 1\n  },\n  \"requestResources\": {\n    \"medicalSuppliesKit\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter/exchange",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter",
+                "exchange"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Relatórios",
+      "item": [
+        {
+          "name": "Relatório - Centros com Alta Ocupação (>90%)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter/highOccupation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter",
+                "highOccupation"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Relatório - Média de Recursos por Centro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter/averageResources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter",
+                "averageResources"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Relatório - Histórico de Alterações de um Centro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter/{{communityCenterId}}/historic?startDate=20200101000000&endDate=20301231235959",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter",
+                "{{communityCenterId}}",
+                "historic"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "20200101000000"
+                },
+                {
+                  "key": "endDate",
+                  "value": "20301231235959"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Autenticação e Segurança",
+      "item": [
+        {
+          "name": "Requisição Sem apiKey (401)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Sobrescreve para enviar sem apiKey",
+                  "pm.request.headers.remove('apiKey');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Requisição com apiKey Inválida (401)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.headers.upsert({key: 'apiKey', value: 'chave_invalida_xyz'});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/communityCenter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communityCenter"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
