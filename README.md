@@ -7,20 +7,15 @@ Projeto de testes funcionais e automação para a **Community Center API**.
 ## Estrutura do Projeto
 
 ```text
-├── Documento de Requisitos do Produto.pdf     # Especificação de requisitos da API
-├── Manual do candidato.pdf                    # Instruções do processo seletivo
-├── Roteiro_de_Testes_e_Bugs_QA.xlsx           # [Artefato 1] Planilha com 57 cenários e bugs
-├── Documento_Bugs_e_Melhorias_QA.pdf          # [Artefato 3] Relatório formal de bugs e melhorias (PDF)
-├── BUG_REPORT.md                              # Relatório de bugs em Markdown
-├── postman/                                   # [Artefato 2] Collection e Environment Postman
-│   ├── Community_Center_API.postman_collection.json
-│   └── Community_Center_Env.postman_environment.json
-├── performance/                               # [Não Funcional] Testes de Carga e Performance (Locust)
+├── performance/                               # Testes de Carga e Performance (Locust)
 │   ├── locustfile.py
 │   └── GUIA_TESTES_PERFORMANCE.md
+├── postman/                                   # Collection e Environment Postman
+│   ├── Community_Center_API.postman_collection.json
+│   └── Community_Center_Env.postman_environment.json
 ├── swagger.yml                                # Documentação OpenAPI 3.0
 ├── requirements.txt                           # Dependências do projeto de automação Python
-└── tests/                                     # [Diferencial] Automação completa em Python / pytest
+└── tests/                                     # Automação completa em Python / pytest
     ├── __init__.py
     ├── conftest.py                            # Fixtures de sessão, URLs e teardown automático
     ├── test_01_create_community_center.py     # Testes para criação de centros (12 cenários)
