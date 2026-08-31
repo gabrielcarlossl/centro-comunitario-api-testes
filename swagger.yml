@@ -1,0 +1,582 @@
+openapi: 3.0.3
+info:
+  title: Community Center API
+  version: 1.0.0
+  description: |
+    API para gerenciamento de centros comunitários, recursos e históricos.
+
+    **Autenticação e isolamento de dados.** Todas as operações exigem o header
+    `apiKey`. A chave também delimita o conjunto de dados visível: cada `apiKey`
+    enxerga e altera apenas os centros comunitários e históricos que ela mesma
+    criou. Centros pertencentes a outra `apiKey` respondem como inexistentes.
+    Relatórios e listagens consideram somente os dados da própria chave.
+
+servers:
+  - url: https://cj98hakmf0.execute-api.us-east-1.amazonaws.com/phoebus-apps
+
+tags:
+  - name: CommunityCenter
+    description: Operações relacionadas a Centros Comunitários
+
+paths:
+  /communityCenter:
+    post:
+      tags: [CommunityCenter]
+      summary: Criar um novo centro comunitário
+      parameters:
+        - name: apiKey
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityCenter'
+      responses:
+        '201':
+          description: Centro comunitário criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityCenterCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+                
+    get:
+      tags: [CommunityCenter]
+      summary: Listar todos os centros comunitários
+      parameters:
+        - name: apiKey
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: >-
+            Número da página, começando em 0. A primeira página é page=0.
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Quantidade de itens por página
+        - name: sort
+          in: query
+          schema:
+            type: string
+            example: "-name"
+          description: Campo de ordenação (prefixe com "-" para ordem descendente)
+      responses:
+        '200':
+          description: Lista de centros
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityCenterPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+                  
+
+  /communityCenter/{communityCenterId}/currentNumberOfPeople:
+    put:
+      tags: [CommunityCenter]
+      summary: Atualizar número atual de pessoas
+      parameters:
+        - name: apiKey
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: communityCenterId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentNumberOfPeople
+              properties:
+                currentNumberOfPeople:
+                  type: integer
+                  minimum: 0
+                  example: 120
+      responses:
+        '204':
+          description: Atualização bem-sucedida
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+
+  /communityCenter/exchange:
+    put:
+      tags: [CommunityCenter]
+      summary: Registrar intercâmbio de recursos entre centros
+      parameters:
+        - name: apiKey
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - communityCenter
+              properties:
+                communityCenter:
+                  type: array
+                  minItems: 2
+                  maxItems: 2
+                  items:
+                    type: object
+                    required:
+                      - communityCenterId
+                      - resources
+                    properties:
+                      communityCenterId:
+                        type: string
+                        minLength: 1
+                        example: "2c275dc0-46af-491c-97f1-89fa1d6afe56"
+                      resources:
+                        type: object
+                        minProperties: 1
+                        properties:
+                          doctor:
+                            type: number
+                            minimum: 1
+                            example: 2
+                          volunteer:
+                            type: number
+                            minimum: 1
+                            example: 5
+                          medicalSuppliesKit:
+                            type: number
+                            minimum: 1
+                            example: 3
+                          transportVehicle:
+                            type: number
+                            minimum: 1
+                            example: 1
+                          basicFoodBasket:
+                            type: number
+                            minimum: 1
+                            example: 10
+      responses:
+        '204':
+          description: Intercâmbio realizado com sucesso
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+
+  /communityCenter/highOccupation:
+    get:
+      tags: [CommunityCenter]
+      summary: Lista de centros com ocupação acima de 90% do seu limite máximo
+      parameters:
+        - name: apiKey
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: >-
+            Número da página, começando em 0. A primeira página é page=0.
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Quantidade de itens por página
+        - name: sort
+          in: query
+          schema:
+            type: string
+            example: "-currentNumberOfPeople"
+          description: Campo de ordenação (prefixe com "-" para ordem descendente)
+      responses:
+        '200':
+          description: "Lista de centros"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityCenterPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /communityCenter/{communityCenterId}/historic:
+    get:
+      tags: [CommunityCenter]
+      summary: Consultar histórico de um centro
+      parameters:
+        - name: apiKey
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: communityCenterId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: initDate
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{14}$'
+            example: "20260101000000"
+          description: >-
+            Início do intervalo de consulta, no formato YYYYMMDDHHmmss em UTC
+            (14 dígitos, sem separadores). Obrigatório.
+        - name: finishDate
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{14}$'
+            example: "20261231235959"
+          description: >-
+            Fim do intervalo de consulta, no formato YYYYMMDDHHmmss em UTC
+            (14 dígitos, sem separadores). Obrigatório. O intervalo é inclusivo
+            nas duas pontas.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: >-
+            Número da página, começando em 0. A primeira página é page=0.
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Quantidade de itens por página
+        - name: sort
+          in: query
+          schema:
+            type: string
+            example: "-createdAt"
+          description: Campo de ordenação (prefixe com "-" para ordem descendente)
+      responses:
+        '200':
+          description: Histórico encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoricPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /communityCenter/averageResources:
+    get:
+      tags: [CommunityCenter]
+      summary: Listar médias de recursos entre centros
+      parameters:
+        - name: apiKey
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Médias calculadas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  averageResources:
+                    type: object
+                    example:
+                      doctor: 5
+                      volunteer: 12
+                      transportVehicle: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Nenhum centro comunitário cadastrado para a apiKey informada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /communityCenter/{communityCenterId}:
+    delete:
+      tags: [CommunityCenter]
+      summary: Remover um centro comunitário
+      parameters:
+        - name: apiKey
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: communityCenterId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Centro removido com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  responses:
+    BadRequest:
+      description: Requisição inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: apiKey ausente, malformada ou desconhecida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Centro comunitário não encontrado para a apiKey informada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-01-15T13:45:30.123Z"
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: "Bad Request"
+        message:
+          type: string
+          example: "Invalid request body"
+        errors:
+          type: array
+          description: >-
+            Presente apenas em erros de validação de payload, com um item por
+            campo rejeitado.
+          items:
+            type: object
+            properties:
+              defaultMessage:
+                type: string
+                example: "must have required property 'address'"
+              field:
+                type: string
+                example: "/resources/doctor"
+              rejectedValue:
+                example: -5
+
+    Resource:
+      type: object
+      minProperties: 1
+      description: >-
+        Quantidades de recursos disponíveis em um centro comunitário. Cada
+        quantidade representa um estoque e portanto não pode ser negativa.
+      properties:
+        doctor:
+          type: integer
+          minimum: 0
+          example: 3
+        volunteer:
+          type: integer
+          minimum: 0
+          example: 10
+        medicalSuppliesKit:
+          type: integer
+          minimum: 0
+          example: 15
+        transportVehicle:
+          type: integer
+          minimum: 0
+          example: 2
+        basicFoodBasket:
+          type: integer
+          minimum: 0
+          example: 20
+
+    CommunityCenter:
+      type: object
+      required:
+        - name
+        - address
+        - maxNumberOfPeople
+        - currentNumberOfPeople
+        - resources
+      properties:
+        name:
+          type: string
+          example: "Centro Comunitário Bairro Azul"
+        address:
+          type: string
+          example: "Rua das Flores, 123"
+        maxNumberOfPeople:
+          type: integer
+          minimum: 1
+          example: 200
+        currentNumberOfPeople:
+          type: integer
+          minimum: 0
+          example: 120
+        resources:
+          $ref: '#/components/schemas/Resource'
+
+    CommunityCenterCreateResponse:
+      type: object
+      properties:
+        communityCenterId:
+          type: string
+          example: "7a39ad57-b793-430b-8ce3-7a2b17c19f4e"
+          
+    CommunityCenterListResponse:
+      type: object
+      properties:
+        communityCenterId:
+          type: string
+          example: "7a39ad57-b793-430b-8ce3-7a2b17c19f4e"
+        name:
+          type: string
+          example: "Centro Comunitário Bairro Azul"
+        address:
+          type: string
+          example: "Rua das Flores, 123"
+        maxNumberOfPeople:
+          type: integer
+          example: 200
+        currentNumberOfPeople:
+          type: integer
+          example: 120
+        resources:
+          $ref: '#/components/schemas/Resource'
+
+    Historic:
+      type: object
+      properties:
+        communityCenters:
+          type: array
+          description: >-
+            Uma entrada por centro participante da negociação. As entradas são
+            espelhadas: o `incoming` de um centro corresponde ao `outcoming` do
+            outro.
+          items:
+            type: object
+            properties:
+              communityCenterId:
+                type: string
+                example: "7a39ad57-b793-430b-8ce3-7a2b17c19f4e"
+              name:
+                type: string
+                example: "Centro Comunitário Bairro Azul"
+              incoming:
+                $ref: '#/components/schemas/Resource'
+              outcoming:
+                $ref: '#/components/schemas/Resource'
+          example:
+            - communityCenterId: "cc-123"
+              name: "Centro Comunitário Bairro Azul"
+              incoming:
+                doctor: 2
+                volunteer: 5
+              outcoming:
+                basicFoodBasket: 3
+            - communityCenterId: "2c275dc0-46af-491c-97f1-89fa1d6afe56"
+              name: "Centro Comunitário Jardim Verde"
+              incoming:
+                basicFoodBasket: 3
+              outcoming:
+                doctor: 2
+                volunteer: 5
+        createdAt:
+          type: string
+          format: date-time
+          description: Data e hora em que a negociação foi registrada, em UTC.
+          example: "2026-01-15T13:45:30.123Z"
+
+    Page:
+      type: object
+      description: >-
+        Envelope de paginação usado por todos os endpoints de listagem. Observe
+        que `size` é a quantidade de itens desta página, não o `pageSize`
+        solicitado, e que o `pageSize` não é devolvido na resposta.
+      properties:
+        page:
+          type: integer
+          description: Página atual, começando em 0.
+          example: 0
+        size:
+          type: integer
+          description: Quantidade de itens presentes em `content`.
+          example: 10
+        totalElements:
+          type: integer
+          description: Total de registros que satisfazem o filtro.
+          example: 42
+        totalPages:
+          type: integer
+          description: >-
+            Total de páginas disponíveis, contando a última página mesmo quando
+            ela tem menos itens que o `pageSize`.
+          example: 5
+
+    CommunityCenterPage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/CommunityCenterListResponse'
+
+    HistoricPage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/Historic'
