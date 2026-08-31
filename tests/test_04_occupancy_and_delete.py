@@ -289,7 +289,7 @@ class TestListCommunityCenters:
         while True:
             resp = requests.get(
                 f"{base_url}/communityCenter",
-                params={"page": page, "pageSize": 50},
+                params={"page": page, "pageSize": 9999},
                 headers=headers,
             )
             assert resp.status_code == 200
